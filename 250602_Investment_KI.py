@@ -47,7 +47,7 @@ use_google_trends = st.sidebar.checkbox("📈 Google Trends", value=True)
 use_sentiment_in_optuna = st.sidebar.checkbox("🧠 Use Sentiment in Optuna", value=False)
 
 # --- Advanced Settings ---
-with st.sidebar.expander(⚙️ Advanced Trading Settings", expanded=False):
+with st.sidebar.expander("⚙️ Advanced Trading Settings", expanded=False):
     trading_capital = st.number_input("💰 Trading Capital", min_value=100.0, value=10000.0, step=1000.0)
     col1, col2 = st.columns(2)
     allow_long = col1.checkbox("✅ Long", value=True)
