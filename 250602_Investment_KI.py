@@ -47,7 +47,7 @@ use_google_trends = st.sidebar.checkbox("📈 Google Trends", value=True)
 use_sentiment_in_optuna = st.sidebar.checkbox("🧠 Use Sentiment in Optuna", value=False)
 
 # --- Advanced Settings ---
-with st.sidebar.expander("⚙️ Advanced Trading Settings", expanded=False):
+with st.sidebar.expander(⚙️ Advanced Trading Settings", expanded=False):
     trading_capital = st.number_input("💰 Trading Capital", min_value=100.0, value=10000.0, step=1000.0)
     col1, col2 = st.columns(2)
     allow_long = col1.checkbox("✅ Long", value=True)
@@ -65,6 +65,7 @@ n_trials = st.sidebar.slider("🔁 Optuna Trials", 1, 200, 100)
 start = st.sidebar.button("🚀 Start Analysis")
 
 # --- Sentiment Functions ---
+
 def analyze_article_sentiment(article):
     text = f"{article.get('title', '')} {article.get('description', article.get('summary', ''))}".strip()
     if not text:
@@ -87,7 +88,11 @@ def show_sentiment_chart(articles):
     for article in articles:
         published_at = article.get("publishedAt") or article.get("published") or ""
         try:
-            date = pd.to_datetime(published_at).normalize()
+            dt = pd.to_datetime(published_at, errors="coerce")
+            if dt is pd.NaT:
+                continue
+            dt = dt.tz_localize(None) if dt.tzinfo else dt
+            date = dt.normalize()
         except Exception:
             continue
         score = analyze_article_sentiment(article)
@@ -113,6 +118,7 @@ def show_sentiment_chart(articles):
     st.pyplot(fig)
 
 # --- News Fetching Functions ---
+
 def fetch_yahoo_news_rss(ticker):
     url = f"https://finance.yahoo.com/rss/headline?s={ticker}"
     feed = feedparser.parse(url)
@@ -141,26 +147,30 @@ def get_google_trends(ticker):
         return pd.DataFrame()
 
 # --- Ticker-Daten laden ---
+
 @st.cache_data
 def load_data(symbol):
     data = yf.download(symbol, period="max")
     if data.empty:
         raise ValueError(f"No data found for ticker '{symbol}'.")
     return data
-
 # --- Main Analysis ---
 if start and ticker:
     try:
         _ = load_data(ticker)
     except Exception as e:
-        st.error(f"Fehler beim Laden von Börsendaten: {e}")
+        st.error(f"❌ Fehler beim Laden von Börsendaten: {e}")
         st.stop()
 
-    st.header("📊 Unternehmensnews")
+    st.markdown("## 📰 Markt- & Unternehmensnachrichten")
+    st.markdown("---")
 
+    # Unternehmensnews – Yahoo Finance
     if use_yahoo_news:
-        with st.expander("📈 Yahoo Finance News"):
+        with st.expander("📈 Yahoo Finance News", expanded=True):
+            st.markdown("##### Letzte Artikel von Yahoo Finance")
             yahoo_news_articles = fetch_yahoo_news_rss(ticker)
+
             for art in yahoo_news_articles[:5]:
                 score = analyze_article_sentiment(art)
                 label = classify_sentiment(score)
@@ -169,12 +179,20 @@ if start and ticker:
                     date_str = pd.to_datetime(published_at).strftime("%Y-%m-%d")
                 except Exception:
                     date_str = "unbekannt"
-                st.markdown(f"- [{art['title']}]({art['link']}) | Datum: {date_str} | Sentiment: {label} ({score:.2f})")
+
+                st.markdown(
+                    f"- [{art['title']}]({art['link']})  \n"
+                    f"🗓️ {date_str} | 🧠 Sentiment: **{label}** ({score:.2f})"
+                )
+
             show_sentiment_chart(yahoo_news_articles)
 
+    # Unternehmensnews – Google News
     if use_google_news:
-        with st.expander("🔍 Google News RSS"):
+        with st.expander("🔍 Google News", expanded=False):
+            st.markdown("##### Letzte Artikel von Google News")
             google_news_articles = fetch_google_news_rss(ticker, company_name)
+
             for art in google_news_articles[:5]:
                 score = analyze_article_sentiment(art)
                 label = classify_sentiment(score)
@@ -183,20 +201,29 @@ if start and ticker:
                     date_str = pd.to_datetime(published_at).strftime("%Y-%m-%d")
                 except Exception:
                     date_str = "unbekannt"
-                st.markdown(f"- [{art['title']}]({art['link']}) | Datum: {date_str} | Sentiment: {label} ({score:.2f})")
+
+                st.markdown(
+                    f"- [{art['title']}]({art['link']})  \n"
+                    f"🗓️ {date_str} | 🧠 Sentiment: **{label}** ({score:.2f})"
+                )
+
             show_sentiment_chart(google_news_articles)
 
+    # Makronews – Investing.com
     if use_investing_rss:
-        st.header("📊 Makronews")
-        with st.expander("🌍 Investing.com RSS"):
+        st.markdown("---")
+        st.markdown("## 🌍 Makroökonomische Nachrichten")
+        with st.expander("📰 Investing.com RSS", expanded=False):
             investing_rss_urls = {
-                "Economy": "https://www.investing.com/rss/news_285.rss",
-                "Central Banks": "https://www.investing.com/rss/news_25.rss",
-                "Macro Indicators": "https://www.investing.com/rss/news_95.rss"
+                "📊 Wirtschaft": "https://www.investing.com/rss/news_285.rss",
+                "🏦 Zentralbanken": "https://www.investing.com/rss/news_25.rss",
+                "📈 Konjunkturindikatoren": "https://www.investing.com/rss/news_95.rss"
             }
-            for label, url in investing_rss_urls.items():
-                st.markdown(f"#### {label}")
+
+            for section_title, url in investing_rss_urls.items():
+                st.markdown(f"#### {section_title}")
                 invest_articles = fetch_investing_rss(url)
+
                 for art in invest_articles[:5]:
                     score = analyze_article_sentiment(art)
                     label_sent = classify_sentiment(score)
@@ -205,17 +232,24 @@ if start and ticker:
                         date_str = pd.to_datetime(published_at).strftime("%Y-%m-%d")
                     except Exception:
                         date_str = "unbekannt"
-                    st.markdown(f"- [{art['title']}]({art['link']}) | Datum: {date_str} | Sentiment: {label_sent} ({score:.2f})")
+
+                    st.markdown(
+                        f"- [{art['title']}]({art['link']})  \n"
+                        f"🗓️ {date_str} | 🧠 Sentiment: **{label_sent}** ({score:.2f})"
+                    )
+
                 show_sentiment_chart(invest_articles)
 
+    # Google Trends
     if use_google_trends:
-        st.header("📊 Stimmungsnews")
-        with st.expander("📈 Google Trends"):
+        st.markdown("---")
+        st.markdown("## 🔎 Google Trends Analyse")
+        with st.expander("📈 Google Trends", expanded=False):
             trends_df = get_google_trends(ticker)
             if not trends_df.empty:
                 st.line_chart(trends_df[ticker])
             else:
-                st.write("No Google Trends data available.")
+                st.info("ℹ️ Keine Google Trends Daten verfügbar.")
 
 # --- Handelslogik (performance-optimiert) ---
 
@@ -656,6 +690,26 @@ def add_steep_movement_target(data, close_col='Close', horizon=1, std_window=20,
 def ROC(series, period=12):
     return series.pct_change(period)
 
+def add_steep_movement_flags(data, close_col='Close', horizons=[1,2,3], rolling_windows=[5,10,20], multipliers=[1.0, 1.2, 1.5]):
+    """
+    Fügt im DataFrame Flags für steile Bewegungen hinzu.
+    - horizons: Liste von Tagen für die Rendite-Berechnung (z.B. 1-3 Tage)
+    - rolling_windows: Liste der Rolling-Std-Fenster (z.B. 5, 10, 20 Tage)
+    - multipliers: Multiplikatoren für die Schwellenwerte
+
+    Ergebnis: Für jede Kombination wird eine Spalte angelegt,
+    z.B. 'steep_move_h1_w5_m1.2' mit 1 oder 0.
+    """
+    for h in horizons:
+        returns = data[close_col].pct_change(h)
+        for w in rolling_windows:
+            rolling_std = returns.rolling(w).std()
+            for m in multipliers:
+                threshold = rolling_std * m
+                flag_col = f'steep_move_h{h}_w{w}_m{m}'
+                data[flag_col] = (returns.abs() > threshold).astype(int)
+    return data
+
 # --- Marktphase erkennen ---
 
 def detect_market_phase(data):
@@ -1037,8 +1091,6 @@ def optuna_study_singleoutput(data, train_default, test_default_months, features
 
 # ------------------ MAIN BLOCK ------------------
 
-# ------------------ MAIN BLOCK ------------------
-
 if start:
     data = load_data(ticker)
 
@@ -1128,7 +1180,6 @@ if start:
         signals['Sell'] = signals['Sell'] & (forecast_return < 0)
 
         return signals
-
 
     # 1. Steile Bewegungen als True-Labels
     steep_true = data_test['SteepMoveFlag']
