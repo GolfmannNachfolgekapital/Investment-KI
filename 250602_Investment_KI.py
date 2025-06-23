@@ -20,7 +20,7 @@ import xgboost as xgb
 from sklearn.metrics import precision_score, recall_score, f1_score
 import os
 
-assword = os.getenv("STREAMLIT_AUTH_PASSWORD")
+password = os.getenv("STREAMLIT_AUTH_PASSWORD")
 
 def check_password():
     def password_entered():
