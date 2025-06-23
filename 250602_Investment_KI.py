@@ -18,12 +18,36 @@ import optuna
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import xgboost as xgb
 from sklearn.metrics import precision_score, recall_score, f1_score
+import os
+
+assword = os.getenv("STREAMLIT_AUTH_PASSWORD")
+
+def check_password():
+    def password_entered():
+        if st.session_state["password"] == password:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.text_input("Passwort", type="password", on_change=password_entered, key="password")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.error("Falsches Passwort")
+        st.text_input("Passwort", type="password", on_change=password_entered, key="password")
+        return False
+    else:
+        return True
+
+if not check_password():
+    st.stop()
 
 # --- Setup Sentiment Analyzer ---
 analyzer = SentimentIntensityAnalyzer()
 
 # --- API Key ---
-API_KEY_NEWSAPI = "eff4370ce4f9491ca58fafe81567324b"
+API_KEY_NEWSAPI = os.getenv("NEWSAPI_KEY")
 
 # --- Sidebar ---
 st.sidebar.title("📊 ML Trading Cockpit")
