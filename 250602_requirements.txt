@@ -6,7 +6,7 @@ matplotlib==3.8.0
 transformers==4.41.1
 vaderSentiment==3.3.2
 feedparser==6.0.10
-pytrends==4.10.0
+pytrends==4.9.2
 numpy==1.26.4
 xgboost==2.0.3
 scikit-learn==1.4.2
