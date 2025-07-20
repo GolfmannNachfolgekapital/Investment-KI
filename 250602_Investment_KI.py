@@ -20,14 +20,6 @@ import xgboost as xgb
 from sklearn.metrics import precision_score, recall_score, f1_score
 import os
 
-@st.cache_resource
-def load_model():
-    tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")  # Hier echten Modellnamen einsetzen
-    model = AutoModelForSequenceClassification.from_pretrained("bert-base-uncased")
-    return tokenizer, model
-
-tokenizer, model = load_model()
-
 password = os.getenv("STREAMLIT_AUTH_PASSWORD")
 
 def check_password():
